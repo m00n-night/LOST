@@ -2294,7 +2294,7 @@ const DICE=[2,4,6,8,12,20,24,30,48,60];
 const PO={atk:{n:5,l:'공격'},def:{n:5,l:'방어'},agi:{n:3,l:'민첩'}};
 /* 물리 직업 수치 (집행자 공격 주사위 보너스 · 연격 추가 피해 배율 · 추적자 피해 보너스(%) · 추적자 관통 비율) */
 /* 아군 탱커 수치 (받는 피해 감소 · 공격 피해 보너스(%) · 방어 태세 반격 배율) */
-const TANKTUNE={dr:.2,atk:0,counter:2,shieldAtk:1};
+const TANKTUNE={dr:.2,atk:0,counter:2};
 /* 반격: 방어 태세가 공격을 모두 막으면, 그 공격을 막고 남은 방어값 × 배율만큼 그 공격자에게 바로 피해.
    공격자마다 따로 발동. 배율: 탱커가 아닌 아군 (탱커는 TANKTUNE.counter, 적은 ×1) */
 const COUNTER_ALLY=1.5;
@@ -2317,7 +2317,7 @@ const POS=[
 ];
 const ROLES={
  dealer:{k:'dealer',n:'딜러',threat:3,sub:'화력 집중',ab:'위협도 3 · 공격 피해 +15% · 마무리(HP 50% 이하 적 피해 +20%) · 처치 시 살기 +1'},
- tank:{k:'tank',n:'탱커',threat:5,sub:'아군 엄호',ab:'위협도 5(방어 시 7) · 최대 HP +20% · 받는 피해 -20% · 방어 주사위 +12% · 방패 공격 · 반사 · 반격 ×2 · 같은 열 엄호 · 결의 +1'},
+ tank:{k:'tank',n:'탱커',threat:5,sub:'아군 엄호',ab:'위협도 5(방어 시 7) · 최대 HP +20% · 받는 피해 -20% · 방어 주사위 +12% · 반사 · 반격 ×2 · 같은 열 엄호 · 결의 +1'},
  support:{k:'support',n:'서포터',threat:2,sub:'회복 지원',ab:'위협도 2 · 공격 피해 -35%(혼자일 땐 없음) · 축복(회복시킨 아군 다음 공격 +15%) · 은총 +1'}
 };
 /* 역할 선택지 표시 순서 */
@@ -3079,7 +3079,7 @@ const MAX_FOES={normal:6,elite:8,red:10};
 /* 승강장이 올라갈수록 몬스터가 강해지는 정도 (1=기존, 낮을수록 완만) */
 const FLOOR_GROW=.75;
 /* 밸런스 패치 후 난이도 보정: 아군 역할 강화만큼 몬스터 세기 배율 (혼자일 때 제외) */
-const ENEMY_TUNE={boss:1,other:1.25};
+const ENEMY_TUNE={boss:1,other:1.15};
 /* 1번 승강장: 한 번에 나오는 몬스터가 2마리인 확률 (나머지는 1마리) */
 const FLOOR1_TWO_RATE=.25;
 function mkEnemy(f,kind,partySize=1){
@@ -3545,7 +3545,7 @@ function doAction(c,u,a){
   else{const tk=friendsC(c,t).find(k=>k!==t&&k.role==='tank'&&k.pos===t.pos);if(tk){L(c,`역할 탱커 → ${nm(tk)}이(가) 같은 열의 ${nm(t)} 대신 공격을 받습니다.`);gainR(c,tk,1);t=tk}}}
  const pool=rollPool(u,u.dice.atk,'atk',c);let p=pool.sum;const notes=[];const add=(v,x)=>{if(v){p+=v;notes.push(x+(v>0?' +':' ')+v)}};
  const vs=pool.dice.map(d=>d.v),dup=new Set(vs).size<vs.length,mx=pool.dice.filter(d=>d.v===d.s).length;
- if(u.side==='a'&&u.role==='tank'&&TANKTUNE.shieldAtk){const sp=rollPool(u,u.dice.def,'def',c);add(Math.round(sp.sum*TANKTUNE.shieldAtk),`역할 탱커 방패 공격 (방어 ${sp.sum}×${Math.round(TANKTUNE.shieldAtk*100)}%)`)}if(u.job==='근거리물리'&&JOBTUNE.exeAtk)add(Math.round(pool.sum*JOBTUNE.exeAtk),`직업 집행자 +${Math.round(JOBTUNE.exeAtk*100)}%`);if(u.side==='a'&&extraTotal('atk',u))add(Math.round(pool.sum*extraTotal('atk',u)/100),`추가 아티팩트 +${extraTotal('atk',u)}%`);
+ if(u.job==='근거리물리'&&JOBTUNE.exeAtk)add(Math.round(pool.sum*JOBTUNE.exeAtk),`직업 집행자 +${Math.round(JOBTUNE.exeAtk*100)}%`);if(u.side==='a'&&extraTotal('atk',u))add(Math.round(pool.sum*extraTotal('atk',u)/100),`추가 아티팩트 +${extraTotal('atk',u)}%`);
  const cnt={};vs.forEach(v=>cnt[v]=(cnt[v]||0)+1);const maxSame=Math.max(0,...Object.values(cnt)),ones=cnt[1]||0;
  const uq=[...new Set(vs)].sort((a,b)=>a-b);let run=uq.length?1:0,best=run;for(let i=1;i<uq.length;i++){run=uq[i]===uq[i-1]+1?run+1:1;best=Math.max(best,run)}
  if(u.side==='a'&&has('fullmoon')&&mx)add(Math.round(pool.sum*.1*mx),AR.fullmoon.n+` +${10*mx}%`);
@@ -5470,21 +5470,24 @@ const JOB_DETAIL={
 };
 const ROLE_DETAIL={
  dealer:[
-  `공격 피해 <b>+15%</b>. 적이 자동으로 공격 대상을 고를 때의 가중치(위협도)는 <b>${ROLES.dealer.threat}</b>.`,
+  `공격 피해 <b>+15%</b>. 위협도는 <b>${ROLES.dealer.threat}</b>.`,
   `<b>마무리</b>: HP가 <b>${dxPc(DEALTUNE.finishHp)}% 이하</b>인 적을 공격하면 피해 <b>+${DEALTUNE.finishPct}%</b>.`,
-  `<b>살기</b>: 내 차례가 시작될 때마다 +1, 적을 <b>쓰러뜨릴 때</b> 추가로 +1. ${RCOST1}칸이면 <b>기습</b>(저지·방어 태세·엄호 무시, 공격 피해 +30%), ${RMAX}칸이면 <b>처형</b>(같은 무시 효과, 공격 피해 +60%, 처치하면 살기 +1 추가)을 쓸 수 있습니다.`],
+  `<b>살기</b>(역할 자원): 내 차례가 시작될 때마다 +1, 적을 <b>쓰러뜨릴 때</b> 추가로 +1.`,
+  `<b>1단계 기습</b>(살기 ${RCOST1}칸): 저지·방어 태세·엄호를 무시하고 공격합니다. 공격 피해 <b>+30%</b>.`,
+  `<b>2단계 처형</b>(살기 ${RMAX}칸): 저지·방어 태세·엄호를 무시하고 공격합니다. 공격 피해 <b>+60%</b>, 처치하면 살기 <b>+1</b> 추가.`],
  tank:[
   `<b>최대 HP +20%</b>(레벨 업 HP도 +${lvlHp({role:'tank'})}), 받는 모든 피해 <b>-${dxPc(TANKTUNE.dr)}%</b>(아군 탱커만 적용), 방어 주사위 합 <b>+12%</b>. 위협도는 <b>${ROLES.tank.threat}</b>(방어 태세 중에는 <b>${ROLES.tank.threat+2}</b>)라서 적의 공격이 가장 많이 몰립니다.`,
-  `<b>방패 공격</b>: 공격할 때 방어 주사위도 함께 굴려 그 합${TANKTUNE.shieldAtk!==1?'의 '+dxPc(TANKTUNE.shieldAtk)+'%':''}만큼 공격값에 더합니다(아군 한정).`,
   '<b>엄호</b>: 같은 열의 다른 아군이 공격받으면 탱커가 대신 맞고, 그때마다 <b>결의</b> +1. 기습·처형·성광은 엄호를 무시합니다.',
   `<b>방어 태세</b>는 다음 내 차례까지 들어오는 공격을 막습니다. 막을 때마다 막은 양의 <b>${dxPc(RIPOSTE)}%</b>를 공격자에게 <b>반사</b>하고(모든 아군 공통), 공격을 <b>모두 막으면</b> 남은 방어값의 <b>${TANKTUNE.counter}배</b>로 즉시 <b>반격</b>합니다(다른 아군은 ${COUNTER_ALLY}배, 몬스터는 1배. 공격자마다 발동).`,
-  `<b>결의</b>: 내 차례마다 +1, 엄호·대신 맞기를 할 때마다 +1. ${RCOST1}칸이면 <b>대신 맞기</b>(동료 1명을 노린 공격을 다음 내 차례까지 모두 대신 받음), ${RMAX}칸이면 <b>철벽</b>(방어 주사위 +50%, 다음 내 차례까지 아군 전원이 받는 피해 -${dxPc(WALL_DR)}%)을 씁니다.`],
+  `<b>결의</b>(역할 자원): 내 차례마다 +1, 엄호·대신 맞기를 할 때마다 +1.`,
+  `<b>1단계 대신 맞기</b>(결의 ${RCOST1}칸): 방어 태세를 올리고, 다음 내 차례까지 동료 1명을 노린 공격을 모두 대신 받습니다.`,
+  `<b>2단계 철벽</b>(결의 ${RMAX}칸): 방어 주사위 <b>+50%</b>로 방어 태세를 올리고, 다음 내 차례까지 아군 전원이 받는 피해 <b>-${dxPc(WALL_DR)}%</b>.`],
  support:[
   `공격 피해 <b>-35%</b>(혼자일 때는 페널티 없음). 위협도 <b>${ROLES.support.threat}</b>로 가장 낮아 적의 공격을 덜 받습니다.`,
   `<b>축복</b>: 치유·성광으로 회복시킨 아군은 다음 공격의 피해가 <b>+${BLESS_PCT}%</b>.`,
-  `<b>은총</b>: 내 차례마다 <b>+2</b>(모든 역할 공통 +1에 서포터 +1). 서포터의 회복은 모두 행동을 씁니다.`,
-  `<b>치유</b>(은총 <b>1칸</b>부터): 가진 은총을 쓰고(주사위 수가 상한), 쓴 칸 수만큼(후열은 +1개) 공격·방어·민첩 중 면수 합이 가장 큰 스탯의 주사위를 <b>큰 것부터</b> 굴립니다. 회복량은 주사위 1개당 대상 최대 HP의 <b>${dxPc(HEALTUNE.base)}%</b> + 굴린 합의 <b>${HEALTUNE.k}배</b>이며, 초과 회복은 보호막이 되고 디버프를 정화합니다.`,
-  `<b>성광</b>(은총 ${RMAX}칸): 저지·방어 태세·엄호를 무시하고 공격한 뒤, 준 HP 피해의 <b>${dxPc(SMITE_HEAL)}%</b>만큼 HP 비율이 가장 낮은 아군 1명을 회복합니다. 공격 스탯으로 회복하는 공격형 서포터의 핵심 기술입니다.`]
+  `<b>은총</b>(역할 자원): 내 차례마다 <b>+2</b>(모든 역할 공통 +1에 서포터 +1). 서포터의 회복은 모두 행동을 씁니다.`,
+  `<b>1단계 치유</b>(은총 <b>1칸</b>부터): 가진 은총을 쓰고(주사위 수가 상한), 쓴 칸 수만큼(후열은 +1개) 공격·방어·민첩 중 면수 합이 가장 큰 스탯의 주사위를 <b>큰 것부터</b> 굴립니다. 회복량은 주사위 1개당 대상 최대 HP의 <b>${dxPc(HEALTUNE.base)}%</b> + 굴린 합의 <b>${HEALTUNE.k}배</b>이며, 초과 회복은 보호막이 되고 디버프를 정화합니다.`,
+  `<b>2단계 성광</b>(은총 ${RMAX}칸): 저지·방어 태세·엄호를 무시하고 공격한 뒤, 준 HP 피해의 <b>${dxPc(SMITE_HEAL)}%</b>만큼 HP 비율이 가장 낮은 아군 1명을 회복합니다. 공격 스탯으로 회복하는 공격형 서포터의 핵심 기술입니다.`]
 };
 const dexDetail=a=>a.map(s=>`<span class="trait-one" style="margin-top:6px">${s}</span>`).join('');
 
@@ -5606,11 +5609,8 @@ function dexOv(){
 
  else if(tab==='role'){
   body=`<h3 class="sub l">직업 효과 · 4종</h3><div class="dxg">${Object.entries(JOBS).map(([r,k])=>ent(jobIc(r,26),`${k.n} — ${k.sub}`,`${k.tr}${dexDetail(JOB_DETAIL[r]||[])}`)).join('')}</div>
-  <h3 class="sub l">역할 · 3종</h3><div class="dxg">${ROLE_ORDER.map(r=>ent(roleIc(r,26),`${ROLES[r].n} — ${ROLES[r].sub}`,`${dexDetail(ROLE_DETAIL[r]||[])}`)).join('')}</div>
-  <p class="small mute">위협도(적이 자동으로 공격 대상을 고를 때의 가중치): 탱커 ${ROLES.tank.threat}(방어 태세 중 ${ROLES.tank.threat+2}) · 딜러 ${ROLES.dealer.threat} · 서포터 ${ROLES.support.threat}</p>
-  <h3 class="sub l">포지션 · 3종</h3><div class="dxg">${POS.map(p=>ent(posIc(p.k,26),`${p.n} — ${p.sub}`,p.ab)).join('')}</div>
-  <h3 class="sub l">역할 기술 · 6종</h3><p class="small mute">역할 자원은 최대 ${RMAX}칸(확장된 마력 용기가 있으면 +1)입니다. 후열은 기술 비용이 1칸 줄고 25% 확률로 1칸 더 줄어듭니다. 몬스터는 1단계 기술만 ${RMAX_E}칸으로 씁니다.</p>
-  <div class="dxg">${Object.entries(SKILL).map(([r,k])=>{const k2=SKILL2[r];return ent(roleIc(r,26),`${ROLES[r].n} — ${k.n} · ${k2.n}`,`<b>자원: ${k.r}</b><br><b>1단계 ${k.n}</b> (${r==='support'?'1칸 이상':RCOST1+'칸'}) · ${k.d}<br><b>2단계 ${k2.n}</b> (${RMAX}칸) · ${k2.d}`)}).join('')}</div>`;
+  <h3 class="sub l">역할 · 3종</h3><p class="small mute">역할마다 고유 효과와 역할 자원, 그 자원으로 쓰는 1·2단계 역할 기술이 있습니다. 역할 자원은 최대 ${RMAX}칸(확장된 마력 용기가 있으면 +1)이며, 후열은 기술 비용이 1칸 줄고 25% 확률로 1칸 더 줄어듭니다. 몬스터는 1단계 기술만 ${RMAX_E}칸으로 씁니다. 위협도는 적이 자동으로 공격 대상을 고를 때의 가중치입니다.</p><div class="dxg">${ROLE_ORDER.map(r=>ent(roleIc(r,26),`${ROLES[r].n} — ${ROLES[r].sub}`,`${dexDetail(ROLE_DETAIL[r]||[])}`)).join('')}</div>
+  <h3 class="sub l">포지션 · 3종</h3><div class="dxg">${POS.map(p=>ent(posIc(p.k,26),`${p.n} — ${p.sub}`,p.ab)).join('')}</div>`;
  }
 
  else if(tab==='trait'){
